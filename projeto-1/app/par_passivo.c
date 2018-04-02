@@ -1,32 +1,16 @@
-// A multithread echo server
-
 #include "mysocket.h"
 #include <pthread.h>
 
-#define NTHREADS 100
+#define NTHREADS 5
 
 int cont_thread = 0;
-pthread_mutex_t lock;
+pthread_mutex_t lock, socketLock;
+TSocket activeSocket;
 
 /* Structure of arguments to pass to client thread */
 struct TArgs {
   TSocket cliSock;   /* socket descriptor for client */
 };
-
-int sum(int a, int b) {
-  return a+b;
-}
-int sub(int a, int b) {
-  return a-b;
-}
-int mult(int a, int b) {
-  return a*b;
-}
-
-//problemas: div por 0 ; div sera arredondada
-int divS(int a, int b) {
-  return a/b;
-}
 
 void parse(char * str, int * a, int * b, int j) {
 
@@ -57,6 +41,26 @@ void parse(char * str, int * a, int * b, int j) {
 
 }
 
+void changeActiveChat(TSocket new) {
+  pthread_mutex_lock(&socketLock);
+    activeSocket = new;
+  pthread_mutex_unlock(&socketLock);
+}
+
+TSocket checkActiveChat() {
+  pthread_mutex_lock(&socketLock);
+    TSocket aux = activeSocket;
+  pthread_mutex_unlock(&socketLock);
+  return aux;
+}
+
+void sumContThread(int n) {
+  pthread_mutex_lock(&lock);
+    if(n > 0) cont_thread += n;
+    else cont_thread -= n; 
+  pthread_mutex_unlock(&lock);
+}
+
 /* Handle client request */
 void * HandleRequest(void *args) {
   char str[100];
@@ -66,15 +70,15 @@ void * HandleRequest(void *args) {
   cliSock = ((struct TArgs *) args) -> cliSock;
   free(args);  /* deallocate memory for argument */
 
-  pthread_mutex_lock(&lock);
-  cont_thread++;
-  pthread_mutex_unlock(&lock);
+  sumContThread(1);
 
   for(;;) {
     /* Receive the request */
     if (ReadLine(cliSock, str, 99) < 0)
       { ExitWithError("ReadLine() failed");
     } else printf("%s",str);
+
+    sendToBuffer(str);
 
     /* Operation Types */
     int resp;
@@ -105,9 +109,7 @@ void * HandleRequest(void *args) {
       { ExitWithError("WriteN() failed"); }
   }
 
-  pthread_mutex_lock(&lock);
-  cont_thread--;
-  pthread_mutex_unlock(&lock);
+  sumContThread(-1);
 
   close(cliSock);
   pthread_exit(NULL);
@@ -126,6 +128,12 @@ int main(int argc, char *argv[]) {
 
   /* Create a passive-mode listener endpoint */
   srvSock = CreateServer(atoi(argv[1]));
+
+  /* Connect with server that has chat's IP's */
+  // printf("Chat server...\n");
+  // char* chatServer;
+  // scanf("%s", chatServer);
+  // TSocket sock = ConnectToServer(chatServer, 2018);
 
   /* Run forever */
   for (;;) {

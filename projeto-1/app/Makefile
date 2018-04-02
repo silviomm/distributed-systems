@@ -4,8 +4,8 @@
 
 VERSION = 1.0
 
-SERVER = server_thread.c
-CLIENT = par-ativo.c
+SERVER = par_passivo.c
+CLIENT = par_ativo.c
 SRV = srv
 CLI = cli
 
