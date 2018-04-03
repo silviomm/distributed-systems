@@ -11,13 +11,20 @@ TSocket activeSocket = 1;
 /* Structure of arguments to pass to client thread */
 struct TArgs {
   TSocket cliSock;   /* socket descriptor for client */
-  int id;
 };
 
 typedef struct Buffer {
   char* buff[TAM_BUFFER];
   int pos;
 } Buffer;
+
+typedef struct User {
+  TSocket cliSock;
+  char* name[20];
+  int pos;
+} User;
+
+User users[NTHREADS];
 
 void changeActiveChat(TSocket new) {
   pthread_mutex_lock(&socketLock);
@@ -114,12 +121,15 @@ void * Menu(void *args) {
       changeActiveChat(atoi(conn));
     }
     if (strcmp(command, "/show_users") == 0) {
-      printf("FIM\n");
+      printf("show_users\n");
     }
     if (strcmp(command, "FIM") == 0) {
       printf("FIM\n");
     }
   }
+}
+
+void add_user(TSocket cliSock) {
 
 }
 
@@ -155,6 +165,7 @@ int main(int argc, char *argv[]) {
 
     /* Spawn off separate thread for each client */
     cliSock = AcceptConnection(srvSock);
+    add_user(cliSock);
 
     /* Create separate memory for client argument */
     if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL)
