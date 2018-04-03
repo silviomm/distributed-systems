@@ -2,14 +2,7 @@
 #include <pthread.h>
 
 #define NTHREADS 5
-
-/*
-  fd-set set; variavel set
-  fd-zero iniciar as coisas
-  fd-set() setar os descritores q serao escutados
-  fd-isset(desc, &set) verificar se o descritor ta la
-  select(fd-setsize, &set, nul, null, null)
-*/
+#define TAM_BUFFER 100
 
 int cont_thread = 0;
 pthread_mutex_t lock, socketLock;
@@ -22,39 +15,9 @@ struct TArgs {
 };
 
 typedef struct Buffer {
-  char* buff[100];
+  char* buff[TAM_BUFFER];
   int pos;
 } Buffer;
-Buffer b1, b2, b3, b4, b5;
-
-void parse(char * str, int * a, int * b, int j) {
-
-  int i;
-  int auxn;
-  int flag = 0;
-  int flag_neg1 = 0, flag_neg2 = 0;
-
-  for(i=j; i<strlen(str)-1; i++) {
-
-    if((str[i] == ' ') || (str[i] == '-')){
-      if (i == j) flag_neg1 = 1;
-      else if(str[i] == ' ') flag = 1;
-      else flag_neg2 = 1;
-    }
-    else {
-      auxn = str[i] - '0';
-      if(flag == 0) {
-        *a = *a*10 + auxn;
-      } else {
-        *b = *b*10 + auxn;
-      }
-    }
-  }
-
-  if(flag_neg1 == 1) *a = *a*-1;
-  if(flag_neg2 == 1) *b = *b*-1;
-
-}
 
 void changeActiveChat(TSocket new) {
   pthread_mutex_lock(&socketLock);
@@ -83,47 +46,64 @@ void consume(Buffer** b) {
   (*b)->pos = 0;
 }
 
+void produce(char* str, Buffer** b) {
+  if ((*b)->pos >= TAM_BUFFER) (*b)->pos = 0;
+  (*b)->buff[(*b)->pos++] = str;
+}
+
 /* Handle client request */
 void * HandleRequest(void *args) {
   char str[100];
   TSocket cliSock;
+  char response[100];
+
+  /* Create Buffer and set initial position */
   Buffer* b = (struct Buffer*) malloc(sizeof(Buffer));
   b->pos = 0;
 
-  /* Extract socket file descriptor and id from argument */
+  /* Extract socket file descriptor and deallocate memory from argument */
   cliSock = ((struct TArgs *) args) -> cliSock;
-  free(args);  /* deallocate memory for argument */
+  free(args);
 
   sumContThread(1);
 
   for(;;) {
     /* Receive the request */
-    if (ReadLine(cliSock, str, 99) < 0)
-      { ExitWithError("ReadLine() failed");
-    } else {
-      b->buff[b->pos++] = str;
+    if (ReadLine(cliSock, str, 99) < 0) { 
+      ExitWithError("ReadLine() failed");
+    } 
+    else {
+      produce(str, &b);
     }
 
-    char resposta[100];
-    /* Operation Types */
+    /* Consume msg and send response */
     if(cliSock == checkActiveChat()) {
       consume(&b);
-      scanf("%s", resposta);
+      if (strncmp(str, "FIM", 3) == 0) break; /* finish chat */
+      
+      scanf("%s", response);
+      
+      /* change conversation or send response */
+      if (strncmp(response, "/change", 7) == 0) {
+        changeActiveChat(1);
+      }
+      else {
+        sprintf(str, "%s\n", response);
+        if (WriteN(cliSock, str, strlen(str)) <= 0) { 
+          ExitWithError("WriteN() failed"); 
+        }
+      }
     }
-    int resp;
-    if (strncmp(str, "quit", 4) == 0) break;
-    if (strncmp(str, "threads", 7) == 0) resp = cont_thread;
-
-    sprintf(str, "%s\n", resposta);
-    /* Send the response */
-    if (WriteN(cliSock, str, strlen(str)) <= 0)
-      { ExitWithError("WriteN() failed"); }
   }
 
   sumContThread(-1);
 
   close(cliSock);
   pthread_exit(NULL);
+}
+
+
+void * Menu(void *args) {
 }
 
 int main(int argc, char *argv[]) {
