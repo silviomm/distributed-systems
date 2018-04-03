@@ -7,11 +7,9 @@ int sendMsg(char* str, TSocket sock) {
 
    if (WriteN(sock, str, ++n) <= 0)
      { ExitWithError("WriteN() failed"); }
-   
+
    if (strncmp(str, "FIM", 3) == 0) return -1;
-   if (strncmp(str, "LISTEN", 6) == 0) return -2;
-   
-   
+
    return 1;
 }
 
@@ -26,9 +24,11 @@ int main(int argc, char *argv[]) {
   char *servIP;
   unsigned short servPort;
   char str[100];
+  fd_set set;
+  int ret;
 
   if (argc != 3) {
-    ExitWithError("Usage: client <remote server IP> <remote server Port>");    
+    ExitWithError("Usage: client <remote server IP> <remote server Port>");
   }
 
   servIP = argv[1];
@@ -37,17 +37,30 @@ int main(int argc, char *argv[]) {
   /* Create a connection */
   sock = ConnectToServer(servIP, servPort);
 
-  int option = 1;
   for(;;) {
-    while(option == 1) {
-      option = sendMsg(str, sock);
+    /* Initialize the file descriptor set */
+    FD_ZERO(&set);
+    /* Include stdin into the file descriptor set */
+    FD_SET(STDIN_FILENO, &set);
+    /* Include srvSock into the file descriptor set */
+    FD_SET(sock, &set);
+
+    ret = select (FD_SETSIZE, &set, NULL, NULL, NULL);
+    if (ret<0) {
+       WriteError("select() failed");
+       break;
     }
-    if(option == -1) {
-      break;
+
+    /* Read from stdin */
+    if (FD_ISSET(STDIN_FILENO, &set)) {
+      if (sendMsg(str, sock) < 0) break;
     }
-    if(option == -2) {
+
+    /* Read from srvSock */
+    if (FD_ISSET(sock, &set)) {
       receiveMsg(str, sock);
     }
+
   }
 
   close(sock);
