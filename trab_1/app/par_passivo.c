@@ -6,7 +6,7 @@
 
 int cont_thread = 0;
 pthread_mutex_t lock, socketLock;
-TSocket activeSocket = 0;
+TSocket activeSocket = 1;
 
 /* Structure of arguments to pass to client thread */
 struct TArgs {
@@ -84,7 +84,7 @@ void * HandleRequest(void *args) {
       scanf("%s", response);
       
       /* change conversation or send response */
-      if (strncmp(response, "/change", 7) == 0) {
+      if (strncmp(response, "/menu", 5) == 0) {
         changeActiveChat(1);
       }
       else {
@@ -104,12 +104,29 @@ void * HandleRequest(void *args) {
 
 
 void * Menu(void *args) {
+  TSocket cliSock = ((struct TArgs *) args) -> cliSock;
+  char command[10];
+  while(checkActiveChat() == cliSock) {
+    scanf("%s", command);
+    if (strcmp(command, "/chat") == 0) {
+      char conn[10];
+      scanf("%s", conn);
+      changeActiveChat(atoi(conn));
+    }
+    if (strcmp(command, "/show_users") == 0) {
+      printf("FIM\n");
+    }
+    if (strcmp(command, "FIM") == 0) {
+      printf("FIM\n");
+    }
+  }
+
 }
 
 int main(int argc, char *argv[]) {
   TSocket srvSock, cliSock;        /* server and client sockets */
   struct TArgs *args;              /* argument structure for thread */
-  pthread_t threads[NTHREADS];
+  pthread_t threads[NTHREADS+1];   /* plus 1 for the Menu Thread */
   int tid = 0;
 
   if (argc == 1) { ExitWithError("Usage: server <local port>"); }
@@ -126,8 +143,12 @@ int main(int argc, char *argv[]) {
   // scanf("%s", chatServer);
   // TSocket sock = ConnectToServer(chatServer, 2018);
 
+  /* Menu Thread */
+  args = (struct TArgs *) malloc(sizeof(struct TArgs));
+  args->cliSock = 1;
+  pthread_create(&threads[tid++], NULL, Menu, (void *) args);
+  
   /* Run forever */
-  int id = 1;
   for (;;) {
     if (tid == NTHREADS)
       { ExitWithError("number of threads is over"); }
@@ -135,17 +156,14 @@ int main(int argc, char *argv[]) {
     /* Spawn off separate thread for each client */
     cliSock = AcceptConnection(srvSock);
 
-    if(activeSocket == 0) changeActiveChat(cliSock);
-
     /* Create separate memory for client argument */
     if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL)
       { ExitWithError("malloc() failed"); }
     args->cliSock = cliSock;
-    args->id = id++;
     /* Create a new thread to handle the client requests */
     if (pthread_create(&threads[tid++], NULL, HandleRequest, (void *) args)) {
       { ExitWithError("pthread_create() failed"); }
     }
-    /* NOT REACHED */
   }
+  /* NOT REACHED */
 }
