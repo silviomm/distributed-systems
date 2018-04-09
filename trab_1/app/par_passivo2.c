@@ -105,7 +105,10 @@ void * Response(void *args) {
       }
     }
     
-    if (strncmp(response, "/FIM", 3) == 0) break;
+    if (strncmp(response, "/FIM", 3) == 0) {
+      //desconectar do servidor
+      break;
+    }
   }
 
   pthread_exit(NULL);
