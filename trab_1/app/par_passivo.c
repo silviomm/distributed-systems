@@ -1,7 +1,7 @@
 #include "mysocket.h"
 #include <pthread.h>
 
-#define NTHREADS 5
+#define NTHREADS 3
 #define TAM_BUFFER 100
 
 int cont_thread = 0;
@@ -55,7 +55,6 @@ void produce(char* str, Buffer** b) {
 void * HandleRequest(void *args) {
   char str[100];
   TSocket cliSock;
-  char response[100];
 
   /* Create Buffer and set initial position */
   Buffer* b = (struct Buffer*) malloc(sizeof(Buffer));
@@ -75,25 +74,13 @@ void * HandleRequest(void *args) {
     else {
       produce(str, &b);
     }
+    
 
     /* Consume msg and send response */
-    if(cliSock == checkActiveChat()) {
-      consume(&b);
-      if (strncmp(str, "FIM", 3) == 0) break; /* finish chat */
-      
-      scanf("%s", response);
-      
-      /* change conversation or send response */
-      if (strncmp(response, "/change", 7) == 0) {
-        changeActiveChat(1);
-      }
-      else {
-        sprintf(str, "%s\n", response);
-        if (WriteN(cliSock, str, strlen(str)) <= 0) { 
-          ExitWithError("WriteN() failed"); 
-        }
-      }
-    }
+    //if(cliSock == checkActiveChat()) {
+    consume(&b);
+    //}
+    if (strncmp(str, "FIM", 3) == 0) break; /* finish chat */
   }
 
   sumContThread(-1);
@@ -103,7 +90,28 @@ void * HandleRequest(void *args) {
 }
 
 
-void * Menu(void *args) {
+void * Response(void *args) {
+  char response[100];
+
+  for(;;) {
+
+    scanf("%s", response);
+    //if (strncmp(response, "/change", 7) == 0) changeActiveChat(1);
+    
+    sprintf(response, "%s\n", response);
+    if (strncmp(response, "/cod3", 5) == 0) {
+      //finaliza no servidor de usuarios;
+    }
+    else {
+      if (WriteN(checkActiveChat(), response, strlen(response)) <= 0) { 
+        ExitWithError("WriteN() failed"); 
+      }
+    }
+    
+    if (strncmp(response, "/FIM", 3) == 0) break;
+  }
+
+  pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -113,9 +121,10 @@ int main(int argc, char *argv[]) {
   int tid = 0;
 
   if (argc == 1) { ExitWithError("Usage: server <local port>"); }
-  if (pthread_mutex_init(&lock, NULL) != 0) {
-    ExitWithError("\n mutex init failed\n");
-  }
+
+  /* inicia mutexes */
+  if (pthread_mutex_init(&lock, NULL) != 0) ExitWithError("\n lock init failed\n");
+  if (pthread_mutex_init(&socketLock, NULL) != 0) ExitWithError("\n socketLock init failed\n");
 
   /* Create a passive-mode listener endpoint */
   srvSock = CreateServer(atoi(argv[1]));
@@ -125,10 +134,15 @@ int main(int argc, char *argv[]) {
   // char* chatServer;
   // scanf("%s", chatServer);
   // TSocket sock = ConnectToServer(chatServer, 2018);
+  // registra usuário
+
+  args = (struct TArgs *) malloc(sizeof(struct TArgs));
+  if (pthread_create(&threads[tid++], NULL, Response, (void *) args)) ExitWithError("response pthread_create() failed");
 
   /* Run forever */
   int id = 1;
   for (;;) {
+    printf("%d\n", tid);
     if (tid == NTHREADS)
       { ExitWithError("number of threads is over"); }
 
@@ -144,7 +158,7 @@ int main(int argc, char *argv[]) {
     args->id = id++;
     /* Create a new thread to handle the client requests */
     if (pthread_create(&threads[tid++], NULL, HandleRequest, (void *) args)) {
-      { ExitWithError("pthread_create() failed"); }
+      { ExitWithError("client pthread_create() failed"); }
     }
     /* NOT REACHED */
   }
