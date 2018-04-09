@@ -1,4 +1,3 @@
-// A simple client 
 #include "mysocket.h"  
 
 int main(int argc, char *argv[]) {
@@ -21,15 +20,20 @@ int main(int argc, char *argv[]) {
   /* Write msg */
   for(;;) {
     scanf(" %[^\n]",str);
-    n = strlen(str);
-    str[n] = '\n';
-    if (WriteN(sock, str, ++n) <= 0)
-      { ExitWithError("WriteN() failed"); }
+    if(strncmp(str, "FIM", 3) == 0) break;
+    else {
+      n = strlen(str);
+      str[n] = '\n';
+      if (WriteN(sock, str, ++n) <= 0) { 
+        ExitWithError("WriteN() failed"); 
+      }
 
-    /* Receive the response */
-    if (ReadLine(sock, str, 99) < 0)
-    { ExitWithError("ReadLine() failed");} 
-    else printf("%s",str);
+      /* Receive the response */
+      if (ReadLine(sock, str, 99) < 0) { 
+        ExitWithError("ReadLine() failed");
+      } 
+      else printf("%s",str);
+    }
   }
   close(sock);
   return 0;
