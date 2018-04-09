@@ -18,14 +18,6 @@ typedef struct Buffer {
   int pos;
 } Buffer;
 
-typedef struct User {
-  TSocket cliSock;
-  char* name[20];
-  int pos;
-} User;
-
-User users[NTHREADS];
-
 void changeActiveChat(TSocket new) {
   pthread_mutex_lock(&socketLock);
     activeSocket = new;
@@ -61,7 +53,6 @@ void produce(char* str, Buffer** b) {
 /* Handle client request */
 void * HandleRequest(void *args) {
   char str[100];
-  char response[100];
   TSocket cliSock;
 
   /* Create Buffer and set initial position */
@@ -82,52 +73,42 @@ void * HandleRequest(void *args) {
     else {
       produce(str, &b);
     }
-    if(cliSock == checkActiveChat()) {
-      consume(&b);
-      if (strncmp(str, "FIM", 3) == 0) break; /* finish chat */
+    
 
-      scanf("%s", response);
-      
-      /* change conversation or send response */
-      if (strncmp(response, "/menu", 5) == 0) {
-        changeActiveChat(1);
-      }
-      else {
-        sprintf(str, "%s\n", response);
-        if (WriteN(cliSock, str, strlen(str)) <= 0) { 
-          ExitWithError("WriteN() failed"); 
-        }
-      }
-    }
+    /* Consume msg and send response */
+    //if(cliSock == checkActiveChat()) {
+    consume(&b);
+    //}
+    if (strncmp(str, "FIM", 3) == 0) break; /* finish chat */
   }
-
-  sumContThread(-1);
 
   close(cliSock);
   pthread_exit(NULL);
 }
 
-void * Menu(void *args) {
-  TSocket cliSock = ((struct TArgs *) args) -> cliSock;
-  char command[10];
-  while(checkActiveChat() == cliSock) {
-    scanf("%s", command);
-    if (strcmp(command, "/chat") == 0) {
-      char conn[10];
-      scanf("%s", conn);
-      changeActiveChat(atoi(conn));
+
+void * Response(void *args) {
+  char response[100];
+
+  for(;;) {
+
+    scanf("%s", response);
+    //if (strncmp(response, "/change", 7) == 0) changeActiveChat(1);
+    
+    sprintf(response, "%s\n", response);
+    if (strncmp(response, "/cod3", 5) == 0) {
+      //finaliza no servidor de usuarios;
     }
-    if (strcmp(command, "/show_users") == 0) {
-      printf("show_users\n");
+    else {
+      if (WriteN(checkActiveChat(), response, strlen(response)) <= 0) { 
+        ExitWithError("WriteN() failed"); 
+      }
     }
-    if (strcmp(command, "FIM") == 0) {
-      printf("FIM\n");
-    }
+    
+    if (strncmp(response, "/FIM", 3) == 0) break;
   }
-}
 
-void add_user(TSocket cliSock) {
-
+  pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -152,10 +133,8 @@ int main(int argc, char *argv[]) {
   // TSocket sock = ConnectToServer(chatServer, 2018);
   // registra usuário
 
-  /* Menu Thread */
   args = (struct TArgs *) malloc(sizeof(struct TArgs));
-  args->cliSock = 1;
-  pthread_create(&threads[tid++], NULL, Menu, (void *) args);
+  if (pthread_create(&threads[tid++], NULL, Response, (void *) args)) ExitWithError("response pthread_create() failed");
   
   /* Run forever */
   for (;;) {
@@ -165,7 +144,6 @@ int main(int argc, char *argv[]) {
 
     /* Spawn off separate thread for each client */
     cliSock = AcceptConnection(srvSock);
-    add_user(cliSock);
 
     /* Create separate memory for client argument */
     if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL)
