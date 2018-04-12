@@ -15,15 +15,17 @@ int main(int argc, char *argv[]) {
   servPort = atoi(argv[2]);
 
   /* Create a connection */
+  servPort = 2018; //porta padrão do projeto
   sock = ConnectToServer(servIP, servPort);
 
-  /* Write msg */
   for(;;) {
     scanf(" %[^\n]",str);
     if(strncmp(str, "FIM", 3) == 0) break;
     else {
       n = strlen(str);
       str[n] = '\n';
+      
+      /* Write msg */
       if (WriteN(sock, str, ++n) <= 0) { 
         ExitWithError("WriteN() failed"); 
       }
