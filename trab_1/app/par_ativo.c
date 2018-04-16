@@ -8,7 +8,7 @@ int sendMsg(char* str, TSocket sock) {
    if (WriteN(sock, str, ++n) <= 0)
      { ExitWithError("WriteN() failed"); }
 
-   if (strncmp(str, "FIM", 3) == 0) return -1;
+   if (strncmp(str, "/FIM", 4) == 0) return -1;
 
    return 1;
 }
@@ -53,7 +53,8 @@ int main(int argc, char *argv[]) {
 
     /* Read from stdin */
     if (FD_ISSET(STDIN_FILENO, &set)) {
-      if (sendMsg(str, sock) < 0) break;
+      int a = sendMsg(str, sock);
+      if (a < 0) break;
     }
 
     /* Read from srvSock */

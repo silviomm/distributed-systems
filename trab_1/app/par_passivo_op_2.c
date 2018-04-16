@@ -29,11 +29,15 @@ int chat_active();
 
 void change_active(int n);
 
+pthread_t thread_req, thread_resp;
+
 int main(int argc, char *argv[]) {
-  TSocket srvSock, cliSock;        /* server and client sockets */
-  struct TArgs *args_req;              /* argument structure for thread */
-  struct TArgs *args_resp;
-  
+  TSocket srvSock, cliSock;       /* server and client sockets */
+  struct TArgs *args_req;         /* argument structure for thread */
+  struct TArgs *args_resp;        /* argument structure for thread */
+  fd_set set; int ret;            /* preparando select */
+  char str[100];                  /* string pra comando usuario */
+
   if (argc == 1) { ExitWithError("Usage: server <local port>"); }
 
   /* inicia mutex */
@@ -45,30 +49,58 @@ int main(int argc, char *argv[]) {
   /* Conecta com servidor de usuários e se registra */
   //conecta_servidor_usuarios(atoi(argv[1]));
 
-  pthread_t thread_req, thread_resp;
   while(1) {
 
-    cliSock = AcceptConnection(srvSock);
-    change_active(1);
+    /* Initialize the file descriptor set */
+    FD_ZERO(&set);
+    /* Include stdin into the file descriptor set */
+    FD_SET(STDIN_FILENO, &set);
+    /* Include srvSock into the file descriptor set */
+    FD_SET(srvSock, &set);
+
+    ret = select (FD_SETSIZE, &set, NULL, NULL, NULL);
+    if (ret<0) {
+       WriteError("select() failed");
+       break;
+    }
+
+    /* Read from stdin */
+    if (FD_ISSET(STDIN_FILENO, &set)) {
+      scanf("%s", str);
+      if (strncmp(str, "/FIM", 4) == 0) {
+        break;
+      }
+    }
+
+    /* Read from srvSock */
+    if (FD_ISSET(srvSock, &set)) {
+      printf("Oba! Nova conexão!\n");
+      cliSock = AcceptConnection(srvSock);
+      change_active(1);
+      
+      /* aloca estruturas para as threads */
+      if ((args_req = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) ExitWithError("args_req malloc() failed");
+      else args_req->cliSock = cliSock;
+
+      if ((args_resp = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) ExitWithError("args_resp malloc() failed");
+      else args_resp->cliSock = cliSock;
+
+      /* cria thread de request e response */
+      if (pthread_create(&thread_req, NULL, HandleRequest, (void *) args_req)) ExitWithError("req pthread_create() failed");
+      if (pthread_create(&thread_resp, NULL, Response, (void *) args_resp)) ExitWithError("resp pthread_create() failed");
+
+      pthread_join(thread_req, NULL);
+      pthread_join(thread_resp, NULL);
+    }
+
     
-    if ((args_req = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) ExitWithError("args_req malloc() failed");
-    else args_req->cliSock = cliSock;
 
-    if ((args_resp = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) ExitWithError("args_resp malloc() failed");
-    else args_resp->cliSock = cliSock;
-
-    /* Create a new thread to handle the client requests */
-    if (pthread_create(&thread_req, NULL, HandleRequest, (void *) args_req)) ExitWithError("req pthread_create() failed");
-    if (pthread_create(&thread_resp, NULL, Response, (void *) args_resp)) ExitWithError("resp pthread_create() failed");
-
-    pthread_join(thread_req, NULL);
-    pthread_join(thread_resp, NULL);
-
-    printf("final\n");
+    printf("Sua conversa acabou. Digite /FIM para sair ou espere uma nova conexão...\n");
 
   }
 
-  /* NOT REACHED */
+  printf("fim\n");
+
 }
 
 
@@ -104,7 +136,6 @@ void * HandleRequest(void *args) {
       ExitWithError("ReadLine() failed");
     } 
     else {
-      printf("recebi isso: %s\n", str);
       produce(str, &b);
     }
 
@@ -113,8 +144,9 @@ void * HandleRequest(void *args) {
     if(!chat_active()) break;
     consume(&b);
     
-    if (strncmp(str, "/FIM", 3) == 0) {
+    if (strncmp(str, "/FIM", 4) == 0) {
       change_active(0);
+      pthread_cancel(thread_resp);
       break;
     }
   }
@@ -143,8 +175,9 @@ void * Response(void *args) {
       ExitWithError("WriteN() failed"); 
     }
     
-    if (strncmp(response, "/FIM", 3) == 0) {
+    if (strncmp(response, "/FIM", 4) == 0) {
       change_active(0);
+      pthread_cancel(thread_req);
       break;
     }
   
