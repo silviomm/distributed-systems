@@ -8,15 +8,20 @@ int sendMsg(char* str, TSocket sock) {
    if (WriteN(sock, str, ++n) <= 0)
      { ExitWithError("WriteN() failed"); }
 
-   if (strncmp(str, "/FIM", 4) == 0) return -1;
+   if (strncmp(str, "FIM", 3) == 0) return -1;
 
    return 1;
 }
 
-void receiveMsg(char* str, TSocket sock) {
-   if (ReadLine(sock, str, 99) < 0)
-    { ExitWithError("ReadLine() failed");
-   } else printf("%s",str);
+int receiveMsg(char* str, TSocket sock) {
+  if (ReadLine(sock, str, 99) < 0)
+    ExitWithError("ReadLine() failed");
+  else 
+    printf("%s",str);
+
+  if (strncmp(str, "FIM", 3) == 0) return -1;
+  
+  return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -59,7 +64,8 @@ int main(int argc, char *argv[]) {
 
     /* Read from srvSock */
     if (FD_ISSET(sock, &set)) {
-      receiveMsg(str, sock);
+      int b = receiveMsg(str, sock);
+      if (b < 0) break;
     }
 
   }

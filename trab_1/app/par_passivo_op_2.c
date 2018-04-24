@@ -17,13 +17,17 @@ typedef struct Buffer {
   int pos;
 } Buffer;
 
+char username[30];
+
 void consume(Buffer** b);
 
 void * HandleRequest(void *args);
 
 void * Response(void *args);
 
-void conecta_servidor_usuarios(int porta);
+void conecta_servidor_usuarios(char* ip);
+
+void desconecta_servidor_usuarios(char* ip);
 
 int chat_active();
 
@@ -38,7 +42,7 @@ int main(int argc, char *argv[]) {
   fd_set set; int ret;            /* preparando select */
   char str[100];                  /* string pra comando usuario */
 
-  if (argc == 1) { ExitWithError("Usage: server <local port>"); }
+  if (argc == 2) { ExitWithError("Usage: server <local port> <server ip>"); }
 
   /* inicia mutex */
   if (pthread_mutex_init(&lock, NULL) != 0) ExitWithError("\n lock init failed\n");
@@ -47,7 +51,7 @@ int main(int argc, char *argv[]) {
   srvSock = CreateServer(atoi(argv[1]));
 
   /* Conecta com servidor de usuários e se registra */
-  //conecta_servidor_usuarios(atoi(argv[1]));
+  conecta_servidor_usuarios(argv[2]);
 
   while(1) {
 
@@ -67,7 +71,8 @@ int main(int argc, char *argv[]) {
     /* Read from stdin */
     if (FD_ISSET(STDIN_FILENO, &set)) {
       scanf("%s", str);
-      if (strncmp(str, "/FIM", 4) == 0) {
+      if (strncmp(str, "FIM", 3) == 0) {
+        desconecta_servidor_usuarios(argv[2]);
         break;
       }
     }
@@ -133,7 +138,7 @@ void * HandleRequest(void *args) {
   for(;;) {
     /* Receive the request */
     if (ReadLine(cliSock, str, 99) < 0) { 
-      ExitWithError("ReadLine() failed");
+      ExitWithError("ReadLine() HandleRequest failed");
     } 
     else {
       produce(str, &b);
@@ -144,7 +149,7 @@ void * HandleRequest(void *args) {
     if(!chat_active()) break;
     consume(&b);
     
-    if (strncmp(str, "/FIM", 4) == 0) {
+    if (strncmp(str, "FIM", 3) == 0) {
       change_active(0);
       pthread_cancel(thread_resp);
       break;
@@ -172,10 +177,10 @@ void * Response(void *args) {
     if(!chat_active()) break;
     
     if (WriteN(cliSock, response, strlen(response)) <= 0) { 
-      ExitWithError("WriteN() failed"); 
+      ExitWithError("WriteN() Response failed"); 
     }
     
-    if (strncmp(response, "/FIM", 4) == 0) {
+    if (strncmp(response, "FIM", 3) == 0) {
       change_active(0);
       pthread_cancel(thread_req);
       break;
@@ -201,30 +206,52 @@ void change_active(int n) {
 
 
 /* Conecta com servidor de usuários e se registra */
-void conecta_servidor_usuarios(int porta) {
+void conecta_servidor_usuarios(char* ip) {
   
-  printf("Diga o IP do servidor de usuários...\n");
-  char chatServer[20];
-  scanf("%s", chatServer);
-  TSocket sock = ConnectToServer(chatServer, 2018); //2018 porta padrão do projeto
+  printf("Conectando ao servidor de usuários...\n");
+  TSocket sock = ConnectToServer(ip, 2018); //2018 porta padrão do projeto
   
   printf("Diga seu nome de usuario...\n");
-  char username[30];
   scanf("%s", username);
 
   // registra usuário
-  sprintf(username, "1 %s %d \n", username, porta);
-  if (WriteN(sock, username, strlen(username)) <= 0) { 
-    ExitWithError("WriteN() failed"); 
+  char str[100];
+  sprintf(str, "1 %s %d \n", username, 8080);
+  if (WriteN(sock, str, strlen(str)) <= 0) { 
+    ExitWithError("WriteN() conecta_servidor_usuarios failed"); 
   }
 
   char resposta[20];
   if (ReadLine(sock, resposta, 99) < 0) { 
-    ExitWithError("ReadLine() failed");
+    ExitWithError("ReadLine() conecta_servidor_usuarios failed");
   }
   else {
-    // confirmações 0, 1, 2?
+    int id = atoi(resposta);
+    switch(id) {
+      case 0:
+        printf("servidor cheio!\n");
+        break;
+      case 1:
+        printf("login já existente!\n");
+        break;
+      case 2:
+        printf("cadastrado com sucesso!\n");
+        break;
+      default:
+        break;
+    }
   }
+}
 
+void desconecta_servidor_usuarios(char* ip) {
+  
+  printf("Desonectando do servidor de usuários...\n");
+  TSocket sock = ConnectToServer(ip, 2018); //2018 porta padrão do projeto
+  
+  char str[100];
+  sprintf(str, "3 %s \n", username);
+  if (WriteN(sock, str, strlen(str)) <= 0) { 
+    ExitWithError("WriteN() desconecta_servidor_usuarios failed"); 
+  }
 }
 

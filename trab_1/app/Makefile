@@ -4,9 +4,9 @@
 
 VERSION = 1.0
 
-SERVER = par_passivo_op_2.c
+SERVER = server.c
 CLIENT = par_ativo.c
-SRV = srv
+SRV = srv2
 CLI = cli
 
 #-------------------------------------------------------------
