@@ -14,10 +14,10 @@ void ve_quem_ta_online(char* ip) {
   if (ReadLine(sock, str, 99) < 0)
     ExitWithError("ReadLine() failed");
   else 
-    printf("\nExistem %s usuarios online...\n",str);
+    printf("usuarios online... %s\n",str);
   int qnt;
-  sscanf(str, "%d", &num);
-  for (int i=0; i < num; i++) {
+  sscanf(str, "%d", &qnt);
+  for (int i=0; i < qnt; i++) {
     if (ReadLine(sock, str, 99) < 0)
       ExitWithError("ReadLine() failed");
     else 
@@ -26,8 +26,8 @@ void ve_quem_ta_online(char* ip) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
-    ExitWithError("Usage: ./client <ip users server>");    
+  if (argc != 2) {
+    ExitWithError("Usage: ./cliente <ip users server>");    
   }
 
   ve_quem_ta_online(argv[1]);

@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   fd_set set; int ret;            /* preparando select */
   char str[100];                  /* string pra comando usuario */
 
-  if (argc == 2) { ExitWithError("Usage: server <local port> <server ip>"); }
+  if (argc != 3) { ExitWithError("Usage: server <local port> <server ip>"); }
 
   /* inicia mutex */
   if (pthread_mutex_init(&lock, NULL) != 0) ExitWithError("\n lock init failed\n");
