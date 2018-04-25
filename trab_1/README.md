@@ -1,15 +1,28 @@
 # sistemas-distribuidos
 Sistemas Distribuídos UFRJ 2018.1
 
-## Trabalho 1
+#Trabalho 1
 
-```
-1. Objetivos:
-    Projetar e implementar um chat distribuído.
-2. Arquitetura de sistema
-    Os seguintes componentes deverão ser implementados como programas distintos:
-    • Servidor de usuários: mantem lista de usuários ativos
-    • Cliente de usuários: consulta servidor de usuários e exibe a lista de usuários ativos
-    • Par passivo: usuario que espera conexões de outros usuários e mantém diálogos
-    • Par ativo: usuario que inicia o diálogo com outro usuário
-```
+## Aula 2: 
+
+Implementar um servidor iterativo que ofereça as seguintes operações:
+1. Somar dois números inteiros (positivos ou negativos)
+2. Subtrair dois números inteiros (positivos ou negativos)
+3. Multiplicar dois números inteiros (positivos ou negativos)
+4. Dividir dois números inteiros (positivos ou negativos)
+
+Implementar uma aplicação cliente que permita ao usuário interagir com o servidor fazendo chamadas às operações oferecidas
+
+
+## Aula 3: 
+
+
+Implementar um servidor **multithreading** que ofereça as seguintes operações:
+1. Somar dois números inteiros (positivos ou negativos)
+2. Subtrair dois números inteiros (positivos ou negativos)
+3. Multiplicar dois números inteiros (positivos ou negativos)
+4. Dividir dois números inteiros (positivos ou negativos)
+5. *Informar quantos clientes estão ativos no servidor*
+
+Implementar uma aplicação cliente que permita ao usuário interagir com o servidor fazendo chamadas às operações oferecidas
+

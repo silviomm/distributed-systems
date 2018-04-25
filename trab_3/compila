@@ -1,0 +1,4 @@
+rm *.class
+javac Calculadora.java
+javac CalculadoraServer.java
+javac CalculadoraClient.java

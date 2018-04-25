@@ -1,0 +1,13 @@
+#compila os arquivos fonte
+./compila
+
+#dispara a aplicacao de registro na maquina do servidor na porta default 1099
+rmiregistry &
+
+#dispara o servidor
+java -Djava.rmi.server.codebase=file:./ PageServer 
+
+#dispara o cliente
+java PageClient
+
+#----------------------------------
