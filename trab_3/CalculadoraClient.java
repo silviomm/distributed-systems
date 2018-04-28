@@ -17,11 +17,9 @@ public class CalculadoraClient {
        Calculadora stub = (Calculadora) registry.lookup("Calculadora");
        for(;;) {
           Thread.sleep(500);
-          // Requisita uma pagina
           System.out.println ("vou fazer uma conta. ");
  
           System.out.println ("2+2 = " + stub.soma(2,2));
-          // Libera uma pagina
           System.out.println ("2-2 = " + stub.subtrai(2,2));
           System.out.println ("2*2 = " + stub.multiplica(2,2));
           System.out.println ("2/2 = " + stub.divide(2,2));
