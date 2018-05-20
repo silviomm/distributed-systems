@@ -21,6 +21,8 @@ int main(int argc, char *argv[]) {
   cadastraUsuario(srvSock);
   publish(srvSock);
 
+  close(srvSock);
+  return 0;
 }
 
 void publish(TSocket srvSock) {
@@ -29,7 +31,10 @@ void publish(TSocket srvSock) {
 
   for(;;) {
     scanf("%s", msg);
-    if(strcmp(msg, "FIM", 3) == 0) descadastraUsuario(srvSock);
+    if(strncmp(msg, "FIM", 3) == 0){
+      descadastraUsuario(srvSock);
+      break;
+    } 
     else {
 
       //char nome[50] variavel global
@@ -43,13 +48,11 @@ void publish(TSocket srvSock) {
       else printf("erro ao publicar msg!\n");
 
     }
-    aux = "";
   }
-  //not reachable
 }
 
 void cadastraUsuario(TSocket srvSock) {
-  char[100] aux;
+  char aux[100];
 
   //char nome[50] variavel global
   printf("nome de usuario...\n");
@@ -70,7 +73,7 @@ void cadastraUsuario(TSocket srvSock) {
 }
 
 void descadastraUsuario(TSocket srvSock) {
-  char[100] aux;
+  char aux[100];
 
   sprintf(aux, "5 %s\n", nome);
   WriteN(srvSock, aux, strlen(aux));

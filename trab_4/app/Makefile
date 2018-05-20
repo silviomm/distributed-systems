@@ -4,10 +4,10 @@
 
 VERSION = 1.0
 
-SERVER = server_bas.c
-CLIENT = client_bas.c
-SRV = srv
-CLI = cli
+SERVER = pub.c
+CLIENT = sub.c
+SRV = pub
+CLI = sub
 
 #-------------------------------------------------------------
 # the rest of the file should not change

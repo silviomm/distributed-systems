@@ -1,3 +1,4 @@
+// Silvio Mançano de Mattos Junior - 2018/1 - Sistemas Distribuídos UFRJ 
 #include "mysocket.h"
 
 int sendMsg(char* str, TSocket sock) {
