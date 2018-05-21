@@ -89,7 +89,7 @@ void subscribe(TSocket despachante, int portaLocal) {
 
   while(strncmp(canal, "FIM", 3) != 0) {
 
-    sprintf(aux, "2 %s %d\n", canal, portaLocal);
+    sprintf(aux, "2 %s %d \n", canal, portaLocal);
     WriteN(despachante, aux, strlen(aux));
 
     ReadLine(despachante, aux, 99);
@@ -123,7 +123,7 @@ void unsubscribe(TSocket despachante) {
     if(strncmp(aux, "FIM", 3) != 0) {
       int cod = atoi(aux);
       char req[100];
-      sprintf(req, "3 %d\n", cod);
+      sprintf(req, "3 %d \n", cod);
 
       WriteN(despachante, req, strlen(req));
       ReadLine(despachante, req, 99);
@@ -145,7 +145,7 @@ void unsubscribe(TSocket despachante) {
 void unsubscribeAll(TSocket despachante) {
   char aux[50];
   for(int i=0; i < QNTD_ATUAL_SUB; i++) {
-    sprintf(aux, "3 %d\n", inscricoes[i].id);
+    sprintf(aux, "3 %d \n", inscricoes[i].id);
 
     WriteN(despachante, aux, strlen(aux));
     ReadLine(despachante, aux, 99);
