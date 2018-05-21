@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
   printf("versao 1.0\n");
 
   cadastraUsuario();
+  printf("publique mensagens!\n");
   publish();
 
   return 0;
