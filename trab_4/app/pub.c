@@ -30,6 +30,7 @@ void publish() {
   char aux[200];
 
   for(;;) {
+    setbuf(stdin, NULL);
     fgets(msg, 140, stdin);
     if(strncmp(msg, "FIM", 3) == 0){
       descadastraUsuario();
@@ -41,7 +42,7 @@ void publish() {
 
       //char nome[50] variavel global
       sprintf(aux, "4 %s %s \n", nome, msg);
-    
+
       WriteN(srvSock, aux, strlen(aux));
       ReadLine(srvSock, aux, 99);
 
