@@ -11,8 +11,9 @@ struct inscricao {
 struct inscricao inscricoes[QNTD_MAX_SUB];
 
 int QNTD_ATUAL_SUB = 0;
+int portaLocal; char* servIP; unsigned short servPort;
 
-void subscribe(TSocket despachante, int portaLocal);
+void subscribe(int portaLocal);
 void receiveMsg(TSocket sock);
 void unsubscribe(TSocket despachante);
 void unsubscribeAll(TSocket despachante);
@@ -21,7 +22,6 @@ int main(int argc, char *argv[]) {
   TSocket despachante;
   char str[100];
   fd_set set; int ret;
-  int portaLocal; char* servIP; unsigned short servPort;
 
   if (argc != 4) {
     ExitWithError("Usage: ./sub <portaServidorLocal> <ipDespachante> <portaDespachante>");
@@ -36,15 +36,18 @@ int main(int argc, char *argv[]) {
   CreateServer(portaLocal);
 
   /* Conecta com despachante e se inscreve em 1 ou mais publishers */
-  despachante = ConnectToServer(servIP, servPort);
-  subscribe(despachante, portaLocal);
+  subscribe(portaLocal);
 
   for(;;) {
+    setbuf(stdin, NULL);
     FD_ZERO(&set);
     FD_SET(STDIN_FILENO, &set);
     FD_SET(despachante, &set);
 
-    printf("Digite 1 para se inscrever em novos canais\n 2 para se desinscrever de um ou mais canais\n FIM para sair do app\n ou espere uma msg...");
+    printf(" Digite 1 para se inscrever em novos canais\n"); 
+    printf(" Digite 2 para se desinscrever de um ou mais canais\n");
+    printf(" Digite FIM para sair do app\n");
+    printf(" Ou espere uma msg...\n");
 
     ret = select (FD_SETSIZE, &set, NULL, NULL, NULL);
     if (ret<0) {
@@ -55,7 +58,7 @@ int main(int argc, char *argv[]) {
     /* Read from stdin */
     if (FD_ISSET(STDIN_FILENO, &set)) {
       scanf("%s", str);
-      if(strncmp(str, "1", 1) == 0) subscribe(despachante, portaLocal);
+      if(strncmp(str, "1", 1) == 0) subscribe(portaLocal);
       if(strncmp(str, "2", 1) == 0) unsubscribe(despachante);
       if(strncmp(str, "FIM", 3) == 0) { unsubscribeAll(despachante); break; }
     }
@@ -67,7 +70,6 @@ int main(int argc, char *argv[]) {
 
   }
 
-  close(despachante);
   return 0;
 }
 
@@ -80,14 +82,17 @@ void receiveMsg(TSocket sock) {
   }
 }
 
-void subscribe(TSocket despachante, int portaLocal) {
+void subscribe(int portaLocal) {
   char canal[50];
   char aux[100];
+  TSocket despachante;
 
   printf("digite o canal que deseja seguir ou FIM para sair...\n");
   scanf("%s", canal);
 
   while(strncmp(canal, "FIM", 3) != 0) {
+
+    despachante = ConnectToServer(servIP, servPort);
 
     sprintf(aux, "2 %s %d \n", canal, portaLocal);
     WriteN(despachante, aux, strlen(aux));
@@ -97,12 +102,15 @@ void subscribe(TSocket despachante, int portaLocal) {
 
     if(cod == 0) printf("erro ao se inscrever nesse canal\n");
     else {
+      printf("inscrição bem sucedida!\n");
       //como verificar "<0> <codUnique>" ?
       //inscricoes[QNTD_ATUAL_SUB].id = cod;
       sprintf(inscricoes[QNTD_ATUAL_SUB].nome, "%s", canal);
       inscricoes[QNTD_ATUAL_SUB].ativo = 1;
       QNTD_ATUAL_SUB++;
     }
+
+    close(despachante);
 
     printf("digite o canal que deseja seguir ou FIM para sair...\n");
     scanf("%s", canal);
