@@ -2,12 +2,12 @@
 # Prof.: Silvana Rossetto
 #------------------------------------------------------------
 
-VERSION = 1.0
+VERSION = 1.1
 
-SERVER = pub.c
-CLIENT = sub.c
-SRV = pub
-CLI = sub
+PUB = pub.c
+SUB = sub.c
+P = pub
+C = sub
 
 #-------------------------------------------------------------
 # the rest of the file should not change
@@ -22,16 +22,17 @@ LFLAGS = -lpthread
 RM = rm
 
 # make all
-all:  $(OBJ)/mysocket.o $(BIN)/$(SRV) $(BIN)/$(CLI)
+all:  $(OBJ)/mysocket.o $(BIN)/$(P) $(BIN)/$(C)
 
 $(OBJ)/mysocket.o: $(SRC)/mysocket.c $(INC)/mysocket.h
 	$(CC) -c $(CFLAGS) -o $@ $(SRC)/mysocket.c
 
-$(BIN)/$(SRV): $(OBJ)/mysocket.o $(SERVER)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)/mysocket.o $(SERVER) $(LFLAGS)
+$(BIN)/$(P): $(OBJ)/mysocket.o $(PUB)
+	$(CC) $(CFLAGS) -o $@ $(OBJ)/mysocket.o $(PUB) $(LFLAGS)
 
-$(BIN)/$(CLI): $(OBJ)/mysocket.o $(CLIENT)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)/mysocket.o $(CLIENT)
+$(BIN)/$(C): $(OBJ)/mysocket.o $(SUB)
+	$(CC) $(CFLAGS) -o $@ $(OBJ)/mysocket.o $(SUB)
+
 # version
 version:
 	@echo $(VERSION) "(Draft Version!)"
