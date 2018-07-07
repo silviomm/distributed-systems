@@ -15,11 +15,11 @@ int portaLocal; char* servIP; unsigned short servPort;
 
 void subscribe(int portaLocal);
 void receiveMsg(TSocket sock);
-void unsubscribe(TSocket despachante);
-void unsubscribeAll(TSocket despachante);
+void unsubscribe();
+void unsubscribeAll();
 
 int main(int argc, char *argv[]) {
-  TSocket despachante;
+  TSocket srvLocal;
   char str[100];
   fd_set set; int ret;
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Cria servidor local */
-  CreateServer(portaLocal);
+  srvLocal = CreateServer(portaLocal);
 
   /* Conecta com despachante e se inscreve em 1 ou mais publishers */
   subscribe(portaLocal);
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     setbuf(stdin, NULL);
     FD_ZERO(&set);
     FD_SET(STDIN_FILENO, &set);
-    FD_SET(despachante, &set);
+    FD_SET(srvLocal, &set);
 
     printf(" Digite 1 para se inscrever em novos canais\n"); 
     printf(" Digite 2 para se desinscrever de um ou mais canais\n");
@@ -59,13 +59,14 @@ int main(int argc, char *argv[]) {
     if (FD_ISSET(STDIN_FILENO, &set)) {
       scanf("%s", str);
       if(strncmp(str, "1", 1) == 0) subscribe(portaLocal);
-      if(strncmp(str, "2", 1) == 0) unsubscribe(despachante);
-      if(strncmp(str, "FIM", 3) == 0) { unsubscribeAll(despachante); break; }
+      if(strncmp(str, "2", 1) == 0) unsubscribe();
+      if(strncmp(str, "FIM", 3) == 0) { unsubscribeAll(); break; }
     }
 
     /* Read from srvSock */
-    if (FD_ISSET(despachante, &set)) {
-      receiveMsg(despachante);
+    if (FD_ISSET(srvLocal, &set)) {
+      TSocket cliSock = AcceptConnection(srvLocal);
+      receiveMsg(cliSock);
     }
 
   }
@@ -98,13 +99,21 @@ void subscribe(int portaLocal) {
     WriteN(despachante, aux, strlen(aux));
 
     ReadLine(despachante, aux, 99);
-    int cod = atoi(aux);
 
-    if(cod == 0) printf("erro ao se inscrever nesse canal\n");
+    char * ptr; int cod = 0, cod1;
+    ptr = strtok(aux, " ");
+    while(ptr!=NULL) {
+      cod1 = cod;
+      cod = atoi(ptr);
+      ptr = strtok(NULL, " ");
+    }
+
+
+    if(cod1 == 0) printf("erro ao se inscrever nesse canal\n");
     else {
       printf("inscrição bem sucedida!\n");
-      //como verificar "<0> <codUnique>" ?
-      //inscricoes[QNTD_ATUAL_SUB].id = cod;
+      printf("cod de inscrição: %d\n", cod1);
+      inscricoes[QNTD_ATUAL_SUB].id = cod1;
       sprintf(inscricoes[QNTD_ATUAL_SUB].nome, "%s", canal);
       inscricoes[QNTD_ATUAL_SUB].ativo = 1;
       QNTD_ATUAL_SUB++;
@@ -118,17 +127,18 @@ void subscribe(int portaLocal) {
   }
 }
 
-void unsubscribe(TSocket despachante) {
+void unsubscribe() {
   char aux[50];
   do {
     printf("De qual canal deseja de desinscrever?\n");
     for(int i=0; i < QNTD_ATUAL_SUB; i++) {
       if(inscricoes[i].ativo != 0) printf("Canal %d: %s\n", inscricoes[i].id, inscricoes[i].nome);
     }
-    printf("Ou digite FIM para sair...");
+    printf("Ou digite FIM para sair...\n");
 
     scanf("%s", aux);
     if(strncmp(aux, "FIM", 3) != 0) {
+      TSocket despachante = ConnectToServer(servIP, servPort);
       int cod = atoi(aux);
       char req[100];
       sprintf(req, "3 %d \n", cod);
@@ -147,20 +157,24 @@ void unsubscribe(TSocket despachante) {
       else printf("codigo de desinscricao nao existe!\n");
     }
 
-  } while(strncmp(aux, "FIM", 3) == 0);
+  } while(strncmp(aux, "FIM", 3) != 0);
 }
 
-void unsubscribeAll(TSocket despachante) {
+void unsubscribeAll() {
   char aux[50];
+
   for(int i=0; i < QNTD_ATUAL_SUB; i++) {
-    sprintf(aux, "3 %d \n", inscricoes[i].id);
+    if(inscricoes[i].ativo != 0) {
+      TSocket despachante = ConnectToServer(servIP, servPort);
+      sprintf(aux, "3 %d \n", inscricoes[i].id);
 
-    WriteN(despachante, aux, strlen(aux));
-    ReadLine(despachante, aux, 99);
+      WriteN(despachante, aux, strlen(aux));
+      ReadLine(despachante, aux, 99);
 
-    int cod = atoi(aux);
-    if(cod == 1) printf("desinscricao %d com sucesso!\n", inscricoes[i].id);
-    else printf("codigo de desinscricao nao existe!\n");
+      int cod = atoi(aux);
+      if(cod == 1) printf("desinscricao do Canal: %d %s com sucesso!\n", inscricoes[i].id, inscricoes[i].nome);
+      else printf("codigo de desinscricao nao existe!\n");
+    }
   }
 }
 
