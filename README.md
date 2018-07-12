@@ -53,3 +53,13 @@ Operações
 - 4 Dividir dois números inteiros (positivos ou negativos)
 - 6 Implementar uma aplicação cliente fazendo chamadas às operações oferecidas e experimentar a aplicação em máquinas distintas
 ```
+
+## fairp2p
+```
+Module:
+Name: FairP2P, instance fp2p
+Events:
+Request: <send | dest,msg>: envia ’msg’ para ’dest’
+Indication: <deliver | src,msg>:
+entrega ’msg’ enviada por ’src’
+```
